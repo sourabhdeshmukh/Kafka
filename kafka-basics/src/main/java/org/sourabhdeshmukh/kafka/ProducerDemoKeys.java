@@ -10,9 +10,9 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Properties;
 
-public class ProducerDemoWithCallback {
+public class ProducerDemoKeys {
 
-    private static final Logger log = LoggerFactory.getLogger(ProducerDemoWithCallback.class.getSimpleName());
+    private static final Logger log = LoggerFactory.getLogger(ProducerDemoKeys.class.getSimpleName());
 
     public static void main(String[] args) throws InterruptedException {
         log.info("Hello, I am Producer!");
@@ -24,34 +24,31 @@ public class ProducerDemoWithCallback {
         // Value Serializer Properties
         properties.setProperty("key.serializer", StringSerializer.class.getName());
         properties.setProperty("value.serializer", StringSerializer.class.getName());
-        // properties.setProperty("batch.size", "400");
+
         // Create The Producer
         KafkaProducer<String,String> producer = new KafkaProducer<>(properties);
 
         // Create a Producer Record
-        for (int i=0; i<10; i++ ) {
-            for (int j=0; j<30; j++) {
+        for (int i=0; i<2; i++) {
+            for (int j = 0; j < 10; j++) {
+                String topic = "demo_java";
+                String key = "id_" + j;
+                String value = "Hello Kafka, I am producer no: " + j;
+
                 ProducerRecord<String, String> producerRecord =
-                        new ProducerRecord<>("demo_java", "Hello Kafka, I am producer no: " + j);
+                        new ProducerRecord<>(topic, key, value);
 
                 // Send Data
-                producer.send(producerRecord, new Callback() {
-                    @Override
-                    public void onCompletion(RecordMetadata metadata, Exception e) {
-                        // executes every time the record is sent or exception is thrown.
-                        if (e == null) {
-                            log.info("Received new metadata \nTopic: {}\nPartition: {}\nOffset: {}\nTimestamp: {}\n", metadata.topic(), metadata.partition(), metadata.offset(), metadata.timestamp());
-                        } else {
-                            log.error("Error while Producing \n", e);
-                        }
+                producer.send(producerRecord, (metadata, e) -> {
+                    // executes every time the record is sent or exception is thrown.
+                    if (e == null) {
+                        log.info("Key: {} | Partition: {}\n", key, metadata.partition());
+                    } else {
+                        log.error("Error while Producing \n", e);
                     }
                 });
             }
-            try {
-                Thread.sleep(500);
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
+            Thread.sleep(500);
         }
 
         // tell the producer to send all data and block until done -- synchronous
